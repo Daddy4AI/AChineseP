@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Session</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+        }
+
+        .word-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .word-container h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .voice-selection {
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+        }
+
+        button {
+            font-size: 2em;
+            padding: 10px 20px;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            background-color: #f1f1f1;
+            font-size: 12px;
+            color: gray;
+            box-shadow: 0px -1px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="voice-selection">
+        <label for="voiceSelect">选择发音：</label>
+        <select id="voiceSelect"></select>
+    </div>
+
+    <div class="word-container">
+        <h2 id="wordDisplay">Loading...</h2>
+    </div>
+
+    <div class="controls">
+        <button id="prevButton">上一个</button>
+        <button id="repeatButton">重复</button>
+        <button id="nextButton">下一个</button>
+    </div>
+
+    <footer>
+        Version 0001
+    </footer>
+
+    <script>
+        let words = JSON.parse(sessionStorage.getItem('filteredWords')) || [];
+        let currentIndex = 0;
+        const wordDisplay = document.getElementById('wordDisplay');
+        const voiceSelect = document.getElementById('voiceSelect');
+
+        function populateVoiceList() {
+            const voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('zh'));
+            voiceSelect.innerHTML = ''; // Clear previous options
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+
+            // Set default voice to Chinese (Mainland China)
+            const defaultVoice = voices.find(voice => voice.lang === 'zh-CN');
+            if (defaultVoice) {
+                voiceSelect.value = voices.indexOf(defaultVoice);
+            }
+        }
+
+        function playWord() {
+            if (words.length > 0 && words[currentIndex]) {
+                const wordText = words[currentIndex].word_text;
+                const utterance = new SpeechSynthesisUtterance(wordText);
+                const voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('zh'));
+                const selectedVoice = voices[voiceSelect.value];
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                } else {
+                    console.warn('No valid Chinese voice selected');
+                }
+                
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.6; // Set playrate to 0.8
+                
+                const wordInfo = `总共${words.length}个单词中的第${currentIndex + 1}个词语`;
+                wordDisplay.textContent = wordInfo;
+                
+                console.log(`Playing word: ${wordText} (${wordInfo})`); // Debugging line
+                
+                speechSynthesis.speak(utterance);
+            } else {
+                wordDisplay.textContent = "No words available";
+                console.warn('No words available to speak');
+            }
+        }
+
+        document.getElementById('prevButton').addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                playWord();
+            }
+        });
+
+        document.getElementById('repeatButton').addEventListener('click', () => {
+            playWord();
+        });
+
+        document.getElementById('nextButton').addEventListener('click', () => {
+            if (currentIndex < words.length - 1) {
+                currentIndex++;
+                playWord();
+            }
+        });
+
+        // Load voices and play the first word
+        populateVoiceList();
+        if (typeof speechSynthesis !== 'undefined') {
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+        playWord();
+    </script>
+</body>
+</html>
