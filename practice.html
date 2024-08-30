@@ -13,7 +13,8 @@
             justify-content: center;
             min-height: 100vh;
             font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
+            background: url('pics/backgd03.jpg') no-repeat center center fixed;
+            background-size: cover;
         }
 
         .word-container {
@@ -29,18 +30,21 @@
             margin-bottom: 10px;
         }
 
-        .voice-selection {
-            margin-bottom: 15px;
-        }
-
         .controls {
             display: flex;
             gap: 20px;
+            margin-bottom: 20px;
         }
 
         button {
             font-size: 2em;
             padding: 10px 20px;
+        }
+
+        .review-button {
+            font-size: 2em;
+            padding: 10px 20px;
+            margin-top: 10px;
         }
 
         footer {
@@ -58,11 +62,6 @@
 </head>
 <body>
 
-    <div class="voice-selection">
-        <label for="voiceSelect">选择发音：</label>
-        <select id="voiceSelect"></select>
-    </div>
-
     <div class="word-container">
         <h2 id="wordDisplay">Loading...</h2>
     </div>
@@ -73,6 +72,8 @@
         <button id="nextButton">下一个</button>
     </div>
 
+    <button id="reviewButton" class="review-button">检查后重新测试</button>
+
     <footer>
         Version 0001
     </footer>
@@ -81,50 +82,33 @@
         let words = JSON.parse(sessionStorage.getItem('filteredWords')) || [];
         let currentIndex = 0;
         const wordDisplay = document.getElementById('wordDisplay');
-        const voiceSelect = document.getElementById('voiceSelect');
-
-        function populateVoiceList() {
-            const voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('zh'));
-            voiceSelect.innerHTML = ''; // Clear previous options
-            voices.forEach((voice, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                voiceSelect.appendChild(option);
-            });
-
-            // Set default voice to Chinese (Mainland China)
-            const defaultVoice = voices.find(voice => voice.lang === 'zh-CN');
-            if (defaultVoice) {
-                voiceSelect.value = voices.indexOf(defaultVoice);
-            }
-        }
 
         function playWord() {
+            // Cancel any ongoing speech synthesis
+            speechSynthesis.cancel();
+            console.log("Speech synthesis canceled");
+
             if (words.length > 0 && words[currentIndex]) {
                 const wordText = words[currentIndex].word_text;
                 const utterance = new SpeechSynthesisUtterance(wordText);
-                const voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith('zh'));
-                const selectedVoice = voices[voiceSelect.value];
-                
-                if (selectedVoice) {
-                    utterance.voice = selectedVoice;
-                } else {
-                    console.warn('No valid Chinese voice selected');
-                }
-                
+
+                // Set voice to zh-CN
                 utterance.lang = 'zh-CN';
-                utterance.rate = 0.6; // Set playrate to 0.8
-                
+                utterance.rate = 0.8; // Set playrate to 0.8
+
                 const wordInfo = `总共${words.length}个单词中的第${currentIndex + 1}个词语`;
                 wordDisplay.textContent = wordInfo;
-                
-                console.log(`Playing word: ${wordText} (${wordInfo})`); // Debugging line
-                
-                speechSynthesis.speak(utterance);
+
+                // Debug: Log the word being played
+                console.log(`Playing word ${currentIndex + 1}: ${wordText}`);
+
+                setTimeout(() => {
+                    speechSynthesis.speak(utterance);
+                    console.log("Speech synthesis started");
+                }, 500); // Slight delay to ensure speech synthesis starts correctly
             } else {
                 wordDisplay.textContent = "No words available";
-                console.warn('No words available to speak');
+                console.warn("No words available to play");
             }
         }
 
@@ -146,11 +130,11 @@
             }
         });
 
-        // Load voices and play the first word
-        populateVoiceList();
-        if (typeof speechSynthesis !== 'undefined') {
-            speechSynthesis.onvoiceschanged = populateVoiceList;
-        }
+        document.getElementById('reviewButton').addEventListener('click', () => {
+            window.location.href = 'review.html';
+        });
+
+        // Start playing the first word
         playWord();
     </script>
 </body>
